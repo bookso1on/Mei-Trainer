@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>🎸 Guitar Fretboard Trainer</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { background: #0b0f14; color: #dbe7f3; font-family: -apple-system, ui-monospace, Menlo, monospace; min-height: 100vh; }
+body { padding: env(safe-area-inset-top) 0 env(safe-area-inset-bottom) 0; }
+.header { position: sticky; top: 0; z-index: 100; background: #0b0f14; padding: 12px; border-bottom: 1px solid #1f2a36; text-align: center; }
+.title { color: #2979ff; font-size: 17px; font-weight: bold; }
+.subtitle { color: #6a7d92; font-size: 11px; margin-top: 4px; }
+.modes { display: flex; gap: 6px; padding: 10px 12px; overflow-x: auto; -webkit-overflow-scrolling: touch; background: #131a22; border-bottom: 1px solid #1f2a36; }
+.modes::-webkit-scrollbar { display: none; }
+.mode-btn { background: #1a2330; color: #dbe7f3; border: 1px solid #2a3a4a; padding: 8px 14px; border-radius: 20px; font-size: 12px; font-weight: bold; font-family: inherit; white-space: nowrap; flex-shrink: 0; min-height: 40px; }
+.mode-btn.active { background: #1e3a5f; border-color: #2979ff; color: #9fd4ff; }
+
+.info { background: #131a22; margin: 10px 12px; padding: 14px 16px; border-radius: 10px; border: 1px solid #1f2a36; text-align: center; min-height: 80px; display: flex; flex-direction: column; justify-content: center; }
+.info-note { font-size: 22px; color: #ffd600; font-weight: bold; margin-bottom: 4px; }
+.info-detail { font-size: 13px; color: #9fd4ff; }
+.info-location { font-size: 11px; color: #6a7d92; margin-top: 4px; }
+.info-empty { color: #6a7d92; font-size: 12px; }
+
+.stats-row { display: flex; justify-content: space-around; padding: 12px; margin: 10px 12px; background: #131a22; border-radius: 10px; border: 1px solid #1f2a36; }
+.stat { text-align: center; }
+.stat-value { color: #2979ff; font-size: 20px; font-weight: bold; }
+.stat-label { color: #6a7d92; font-size: 10px; text-transform: uppercase; margin-top: 2px; }
+
+.board-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 12px 10px; }
+.board-wrap::-webkit-scrollbar { height: 6px; }
+.board-wrap::-webkit-scrollbar-thumb { background: #2a3a4a; border-radius: 3px; }
+.board { display: inline-grid; grid-template-columns: 40px repeat(13, minmax(50px, 1fr)); gap: 2px; background: #0d1a12; border: 2px solid #1a3a2a; border-radius: 10px; padding: 8px; }
+.string-lbl { display: flex; align-items: center; justify-content: center; font-weight: bold; font-size: 14px; color: #d50000; background: #1a0a0a; border-radius: 5px; margin: 1px; min-height: 42px; }
+.string-lbl .num { color: #6a7d92; font-size: 9px; margin-right: 4px; }
+.fret-hdr { display: flex; align-items: center; justify-content: center; color: #2979ff; font-size: 11px; font-weight: bold; padding: 2px 0; }
+.cell { display: flex; align-items: center; justify-content: center; min-height: 42px; margin: 1px; border-radius: 5px; font-size: 11px; font-weight: bold; cursor: pointer; transition: transform 0.08s; }
+.cell:active { transform: scale(0.94); }
+.cell.natural { background: #1a4a2a; color: #66bb6a; border: 1px solid #2a5a3a; }
+.cell.accidental { background: #4a4a1a; color: #fdd835; border: 1px solid #5a5a2a; }
+.cell.anchor { border: 2px solid #ffd600; box-shadow: 0 0 10px rgba(255,214,0,0.7); background: rgba(255,214,0,0.2); color: #ffd600; }
+.cell.playing { background: #2979ff !important; color: #fff !important; box-shadow: 0 0 14px rgba(41,121,255,1); }
+.cell.dimmed { opacity: 0.15; }
+
+.legend { display: flex; flex-wrap: wrap; gap: 10px 16px; justify-content: center; padding: 12px; margin: 0 12px; background: #131a22; border-radius: 10px; font-size: 11px; border: 1px solid #1f2a36; }
+.legend-item { display: inline-flex; align-items: center; gap: 6px; color: #dbe7f3; }
+.swatch { width: 14px; height: 14px; border-radius: 4px; }
+.swatch.natural { background: #1a4a2a; border: 1px solid #66bb6a; }
+.swatch.accidental { background: #4a4a1a; border: 1px solid #fdd835; }
+.swatch.anchor { background: #3a3a1a; border: 2px solid #ffd600; }
+
+.learn { background: #131a22; margin: 12px; padding: 16px; border-radius: 10px; border: 1px solid #1f2a36; }
+.learn h3 { color: #ffd600; font-size: 15px; margin-bottom: 10px; }
+.learn p { color: #dbe7f3; font-size: 13px; line-height: 1.6; margin-bottom: 8px; }
+.learn strong { color: #9fd4ff; }
+.learn ul { list-style: none; padding: 0; }
+.learn li { color: #dbe7f3; font-size: 12px; padding: 4px 0 4px 16px; position: relative; line-height: 1.5; }
+.learn li:before { content: "→"; position: absolute; left: 0; color: #2979ff; }
+
+.progress-bar { background: #1a2330; border-radius: 8px; height: 22px; margin: 10px 12px; overflow: hidden; position: relative; border: 1px solid #2a3a4a; }
+.progress-fill { background: linear-gradient(90deg, #00e676, #2979ff); height: 100%; transition: width 0.3s; }
+.progress-text { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #fff; font-size: 11px; font-weight: bold; text-shadow: 0 0 4px #000; }
+
+.footer { text-align: center; color: #6a7d92; font-size: 11px; padding: 20px; }
+.hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="title">🎸 Guitar Fretboard</div>
+  <div class="subtitle">Anchor: E = 3 = Mi at String 5, Fret 7</div>
+</div>
+
+<div class="modes">
+  <button class="mode-btn active" data-mode="all">🎸 All</button>
+  <button class="mode-btn" data-mode="naturals">🟢 Naturals</button>
+  <button class="mode-btn" data-mode="anchor">🟨 Anchor</button>
+  <button class="mode-btn" data-mode="s6">6️⃣ Low E</button>
+  <button class="mode-btn" data-mode="s5">5️⃣ A</button>
+  <button class="mode-btn" data-mode="s4">4️⃣ D</button>
+  <button class="mode-btn" data-mode="s3">3️⃣ G</button>
+  <button class="mode-btn" data-mode="s2">2️⃣ B</button>
+  <button class="mode-btn" data-mode="s1">1️⃣ High E</button>
+</div>
+
+<div class="info" id="info">
+  <div class="info-empty">Tap any note to hear it</div>
+</div>
+
+<div class="stats-row">
+  <div class="stat"><div class="stat-value" id="notesPlayed">0</div><div class="stat-label">🎵 Played</div></div>
+  <div class="stat"><div class="stat-value" id="stringsTouched">0</div><div class="stat-label">Strings</div></div>
+  <div class="stat"><div class="stat-value" id="anchorFound">0</div><div class="stat-label">⭐ Anchors</div></div>
+</div>
+
+<div class="board-wrap">
+  <div class="board" id="board"></div>
+</div>
+
+<div class="legend">
+  <span class="legend-item"><span class="swatch natural"></span>Natural</span>
+  <span class="legend-item"><span class="swatch accidental"></span>Accidental</span>
+  <span class="legend-item"><span class="swatch anchor"></span>Anchor (E=3=Mi)</span>
+</div>
+
+<div class="learn">
+  <h3>📖 How to read this fretboard</h3>
+  <p><strong>Strings 6→1</strong> top to bottom. <strong>Frets 0→12</strong> left to right.</p>
+  <p><strong>Each fret = 1 semitone.</strong> Moving right = higher.</p>
+  <p><strong>The anchor:</strong> E = 3 = Mi at String 5, Fret 7 (gold). Start here.</p>
+</div>
+
+<div class="footer">
+  MEI Fretboard Trainer · books01on.github.io
+</div>
+
+<script>
+const NOTES = ['C','C#','D','D#','E','F','F#','G','G#','A','A#','B'];
+const NATURALS = ['C','D','E','F','G','A','B'];
+const SOLFEGE = {'C':'Do','C#':'Di','D':'Re','D#':'Ri','E':'Mi','F':'Fa','F#':'Fi','G':'Sol','G#':'Si','A':'La','A#':'Li','B':'Ti'};
+const DEGREES = {'C':'1','D':'2','E':'3','F':'4','G':'5','A':'6','B':'7'};
+const STRINGS = [
+  { num: 6, note: 'E', octave: 2 },
+  { num: 5, note: 'A', octave: 2 },
+  { num: 4, note: 'D', octave: 3 },
+  { num: 3, note: 'G', octave: 3 },
+  { num: 2, note: 'B', octave: 3 },
+  { num: 1, note: 'E', octave: 4 }
+];
+const FRETS = 13;
+const ANCHOR = { string: 5, fret: 7 };
+
+let stats = { played: 0, strings: new Set(), anchors: 0 };
+let audioCtx = null;
+
+function getCtx() {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  return audioCtx;
+}
+function freqOf(note, octave) {
+  const st = {'C':-9,'C#':-8,'D':-7,'D#':-6,'E':-5,'F':-4,'F#':-3,'G':-2,'G#':-1,'A':0,'A#':1,'B':2};
+  return 440 * Math.pow(2, ((st[note]||0) + (octave-4)*12) / 12);
+}
+function playNote(note, octave) {
+  try {
+    const ctx = getCtx();
+    if (ctx.state === 'suspended') ctx.resume();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freqOf(note, octave);
+    gain.gain.setValueAtTime(0, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.28, ctx.currentTime + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.8);
+    osc.connect(gain).connect(ctx.destination);
+    osc.start(); osc.stop(ctx.currentTime + 0.8);
+  } catch(e) {}
+}
+
+function buildBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+  const corner = document.createElement('div');
+  corner.className = 'string-lbl';
+  corner.innerHTML = '<span class="num">#</span>';
+  board.appendChild(corner);
+  for (let f = 0; f < FRETS; f++) {
+    const h = document.createElement('div');
+    h.className = 'fret-hdr';
+    h.textContent = f;
+    board.appendChild(h);
+  }
+  STRINGS.forEach(s => {
+    const lbl = document.createElement('div');
+    lbl.className = 'string-lbl';
+    lbl.innerHTML = `<span class="num">${s.num}</span>${s.note}`;
+    board.appendChild(lbl);
+    for (let f = 0; f < FRETS; f++) {
+      const idx = (NOTES.indexOf(s.note) + f) % 12;
+      const note = NOTES[idx];
+      const isNat = NATURALS.includes(note);
+      const octave = s.octave + Math.floor((NOTES.indexOf(s.note) + f) / 12);
+      const cell = document.createElement('div');
+      cell.className = 'cell ' + (isNat ? 'natural' : 'accidental');
+      cell.dataset.string = s.num;
+      cell.dataset.fret = f;
+      cell.dataset.note = note;
+      cell.dataset.octave = octave;
+      cell.textContent = note;
+      if (s.num === ANCHOR.string && f === ANCHOR.fret) cell.classList.add('anchor');
+      cell.addEventListener('click', () => onCellClick(cell, note, octave, s.num, f));
+      board.appendChild(cell);
+    }
+  });
+}
+
+function onCellClick(cell, note, octave, stringNum, fret) {
+  playNote(note, octave);
+  cell.classList.add('playing');
+  setTimeout(() => cell.classList.remove('playing'), 400);
+  stats.played++;
+  stats.strings.add(stringNum);
+  if (stringNum === ANCHOR.string && fret === ANCHOR.fret) stats.anchors++;
+  document.getElementById('notesPlayed').textContent = stats.played;
+  document.getElementById('stringsTouched').textContent = stats.strings.size;
+  document.getElementById('anchorFound').textContent = stats.anchors;
+
+  const isNat = NATURALS.includes(note);
+  const isAnchor = stringNum === ANCHOR.string && fret === ANCHOR.fret;
+  document.getElementById('info').innerHTML = `
+    <div class="info-note">${note}${isNat ? ' · ' + DEGREES[note] + ' · ' + SOLFEGE[note] : ''}</div>
+    <div class="info-detail">String ${stringNum} · Fret ${fret}${isAnchor ? ' · ⭐ ANCHOR' : ''}</div>
+    <div class="info-location">Octave ${octave}</div>
+  `;
+}
+
+function setMode(mode) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.querySelectorAll('.cell').forEach(c => {
+    c.classList.remove('dimmed');
+    const s = parseInt(c.dataset.string);
+    const note = c.dataset.note;
+    const isNat = NATURALS.includes(note);
+    switch (mode) {
+      case 'all': break;
+      case 'naturals': if (!isNat) c.classList.add('dimmed'); break;
+      case 'anchor': if (note !== 'E') c.classList.add('dimmed'); break;
+      case 's6': if (s !== 6) c.classList.add('dimmed'); break;
+      case 's5': if (s !== 5) c.classList.add('dimmed'); break;
+      case 's4': if (s !== 4) c.classList.add('dimmed'); break;
+      case 's3': if (s !== 3) c.classList.add('dimmed'); break;
+      case 's2': if (s !== 2) c.classList.add('dimmed'); break;
+      case 's1': if (s !== 1) c.classList.add('dimmed'); break;
+    }
+  });
+}
+
+document.querySelectorAll('.mode-btn').forEach(btn => {
+  btn.addEventListener('click', () => setMode(btn.dataset.mode));
+});
+
+buildBoard();
+</script>
+</body>
+</html>
